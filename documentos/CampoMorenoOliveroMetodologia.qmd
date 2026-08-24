@@ -1,0 +1,57 @@
+---
+title: "Nowcasting del crecimiento económico en Colombia mediante modelos bayesianos de frecuencia mixta"
+shorttitle: "Nowcasting económico en Colombia"
+author:
+  - name: Juan Diego Moreno Sánchez
+    corresponding: true
+    orcid: 0000-0000-0000-0000 
+    email: juan.moreno31@est.uexternado.edu.co
+    affiliations:
+      - id: u_externado
+        name: "Universidad Externado de Colombia"
+        department: "Facultad de Economía"
+    roles:
+      - writing
+      - formal analysis
+      - conceptualization
+  - name: Jacobo Campo Robledo
+    orcid: 0000-0000-0000-0000 
+    email: jacampo@ucatolica.edu.co
+    affiliations:
+      - id: u_catolica
+        name: "Universidad Católica de Colombia"
+        department: "Facultad de Ciencias Económicas y Administrativas"
+    roles:
+      - supervision
+      - methodology
+
+author-note:
+  disclosures:
+    conflict-of-interest: "Los autores declaran que no tienen conflictos de intereses."
+
+abstract: |
+  Aquí debes pegar el resumen de tu investigación. El template se encargará de darle el formato APA 7 automático en la segunda página del documento Word.
+
+keywords: []
+
+# Configuración específica de salida
+format:
+  apaquarto-docx:
+    toc: false
+    number-sections: false
+
+# Referencias y lenguaje
+bibliography: referencias.bib
+lang: es
+
+# Ajustes de visualización en el docx
+floatsintext: true # Esto hace que las tablas y figuras queden en el texto y no al final
+numbered-lines: false
+word-count: false
+---
+
+# Metodología
+
+Para 
+
+

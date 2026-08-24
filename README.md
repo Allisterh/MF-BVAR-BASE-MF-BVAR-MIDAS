@@ -1,115 +1,90 @@
-# Base de datos para el modelo Mixed-Frequency Bayesian VAR (MF-BVAR)
+# Base de Datos y Modelos para el Nowcasting del PIB en Colombia (MF-BVAR vs. MIDAS)
 
 ## Descripción
 
-Esta base de datos reúne variables macroeconómicas de frecuencia mensual y trimestral para la estimación de un modelo Mixed-Frequency Bayesian Vector Autoregression (MF-BVAR) orientado al análisis y nowcasting del Producto Interno Bruto (PIB) de Colombia.
+Este repositorio contiene la base de datos macroeconómica de frecuencia mixta (mensual y trimestral) y los scripts de estimación para el *nowcasting* del Producto Interno Bruto (PIB) de Colombia. 
 
-La frecuencia de referencia de la base es mensual. El PIB, al ser una variable trimestral, se incorpora únicamente en el primer mes de cada trimestre (enero, abril, julio y octubre), dejando valores faltantes (NA) en los meses intermedios.
-
----
-
-## Variables
-
-### `date`
-Fecha correspondiente a cada observación mensual.
-
-- Frecuencia: Mensual.
+Se implementa un modelo **Mixed-Frequency Bayesian Vector Autoregression (MF-BVAR)** siguiendo la metodología de Schorfheide & Song (2015) y se compara contra un modelo **AR-MIDAS** (Ghysels et al., 2004) en tasas de crecimiento estacionarias.
 
 ---
 
-### `Precio_Petroleo`
-Precio promedio mensual del petróleo Brent.
+## Estructura de Scripts (`scripts/`)
 
-- Fuente: Federal Reserve Economic Data (FRED).
-- Serie: **POILBREUSDM**.
-- Unidad: USD por barril.
-- Frecuencia: Mensual.
+- **`1_Script_bases.r`**: Extrae, transforma y consolida las 10 series macroeconómicas y financieras oficiales, generando el archivo `BASES/df_MF-BVAR.csv`.
+- **`2_Script_MF-BVAR.r`**: Estima el modelo principal MF-BVAR con prior de Minnesota automática y produce el nowcast del PIB del segundo trimestre de 2026 (crecimiento interanual proyectado del **3.48%**).
+- **`3_Script_MIDAS.r`**: Estima el modelo comparativo AR-MIDAS sobre las variaciones mensuales de alta frecuencia (ISE, ICM) y genera el pronóstico de contraste.
 
 ---
 
-### `ISE`
-Indicador de Seguimiento a la Economía.
+## Variables del Modelo (`BASES/df_MF-BVAR.csv`)
 
-- Fuente: DANE.
-- Serie utilizada: **Datos ajustados por efecto estacional y calendario**.
-- Frecuencia: Mensual.
-- Unidad: Índice.
+### 1. `date`
+- **Descripción:** Fecha de la observación mensual.
+- **Frecuencia:** Mensual (`YYYY-MM-01`).
 
----
+### 2. `Precio_Petroleo`
+- **Descripción:** Precio promedio mensual del petróleo Brent.
+- **Fuente:** Federal Reserve Economic Data (FRED) / EIA. Serie `POILBREUSDM`.
+- **Unidad:** USD por barril.
+- **Frecuencia:** Mensual.
 
-### `Tasa de política monetaria`
-Tasa de política monetaria fijada por el Banco de la República.
+### 3. `ISE`
+- **Descripción:** Indicador de Seguimiento a la Economía.
+- **Fuente:** DANE. Serie desestacionalizada y ajustada por efecto calendario.
+- **Unidad:** Índice (2018 = 100).
+- **Frecuencia:** Mensual.
 
-- Fuente: Banco de la República.
-- Serie utilizada: **Dato mes**.
-- Frecuencia: Mensual.
-- Unidad: Porcentaje (%).
+### 4. `Tasa_Intervencion`
+- **Descripción:** Tasa de interés de política monetaria fijada por la Junta Directiva del Banco de la República.
+- **Fuente:** Banco de la República.
+- **Unidad:** Porcentaje anual (%).
+- **Frecuencia:** Mensual.
 
----
+### 5. `Inflacion`
+- **Descripción:** Variación anual del Índice de Precios al Consumidor (IPC).
+- **Fuente:** DANE / Banco de la República.
+- **Unidad:** Porcentaje anual (%).
+- **Frecuencia:** Mensual.
 
-### `Inflación total`
-Inflación total al consumidor.
+### 6. `TRM`
+- **Descripción:** Tasa Representativa del Mercado (Tipo de cambio nominal COP/USD).
+- **Fuente:** Superintendencia Financiera / Banco de la República.
+- **Unidad:** Pesos colombianos por dólar (COP/USD).
+- **Frecuencia:** Mensual (promedio del mes).
 
-- Fuente: Banco de la República.
-- Serie utilizada: **Dato fin de mes**.
-- Frecuencia: Mensual.
-- Unidad: Porcentaje (%).
+### 7. `IPI`
+- **Descripción:** Índice de Producción Industrial (Muestra Mensual Manufacturera con Enfoque Territorial - EMMET).
+- **Fuente:** DANE.
+- **Unidad:** Índice.
+- **Frecuencia:** Mensual (desestacionalizado con STL).
 
----
+### 8. `PIB`
+- **Descripción:** Producto Interno Bruto real a precios constantes.
+- **Fuente:** DANE (Cuentas Nacionales Trimestrales).
+- **Unidad:** Miles de millones de pesos constantes encadenados.
+- **Frecuencia:** Trimestral (registrado en el mes de cierre de trimestre con `NA` en los meses intermedios).
 
-### `Tasa Representativa del Mercado (TRM)`
-Tipo de cambio nominal COP/USD.
+### 9. `TD`
+- **Descripción:** Tasa de Desempleo (Desocupación) nacional.
+- **Fuente:** DANE (Gran Encuesta Integrada de Hogares - GEIH).
+- **Unidad:** Porcentaje (%).
+- **Frecuencia:** Mensual.
 
-- Fuente: Banco de la República.
-- Serie utilizada: **Promedio mensual**.
-- Frecuencia: Mensual.
-- Unidad: Pesos colombianos por dólar estadounidense (COP/USD).
+### 10. `ICC`
+- **Descripción:** Índice de Confianza del Consumidor.
+- **Fuente:** Fedesarrollo (Encuesta de Opinión del Consumidor - EOC).
+- **Unidad:** Balance neto (puntos).
+- **Frecuencia:** Mensual.
 
----
-
-### `IPI`
-Índice de Producción Industrial.
-
-- Fuente: DANE.
-- Serie utilizada: **Datos ajustados por efecto estacional y calendario**.
-- Frecuencia: Mensual.
-- Unidad: Índice.
-
----
-
-### `df_PIB`
-Producto Interno Bruto (PIB) real.
-
-- Fuente: DANE.
-- Serie utilizada: **PIB real ajustado por efecto estacional y calendario**.
-- Frecuencia: Trimestral.
-- Unidad: Miles de millones de pesos encadenados (según la metodología vigente del DANE).
-
-El PIB se registra únicamente en el primer mes de cada trimestre (enero, abril, julio y octubre). En los meses restantes se asigna un valor faltante (`NA`), de acuerdo con la estructura requerida para la estimación del modelo MF-BVAR.
-
----
-
-### `ICC`
-Índice de Expectativas de los Consumidores.
-
-- Fuente: Fedesarrollo.
-- Serie utilizada: **Datos manuales** ya que es publicada en un pdf.
-- Frecuencia: Mensual.
-- Unidad: Índice.
-
+### 11. `ICM`
+- **Descripción:** Índice de Comercio al por Menor (Ventas reales del comercio minorista).
+- **Fuente:** DANE (Encuesta Mensual de Comercio - EMC).
+- **Unidad:** Índice (2018 = 100).
+- **Frecuencia:** Mensual (desestacionalizado con STL).
 
 ---
 
-## Periodo de estudio
+## Período de Estudio
 
-Enero de 2014 – Diciembre de 2025.
-
----
-
-## Observaciones
-
-Las series utilizadas corresponden a versiones oficiales publicadas por el DANE, el Banco de la República y FRED. Cuando la entidad productora ofrece series ajustadas por efecto estacional y calendario, se utilizaron dichas versiones con el fin de eliminar patrones estacionales y facilitar el análisis de la dinámica económica subyacente.
-
-## Observaciones segundo commit
-
-Se agrega la base de datos de ICC para tomar las espectativas como variable que aporta al pronostico del PIB.
+- **Muestra:** Enero de 2014 a Junio de 2026.
+- **Corte de Información (*Nowcasting Information Set*):** 15 de julio de 2026 (publicación oficial del DANE de la EMC de mayo y del ICC de junio de Fedesarrollo).

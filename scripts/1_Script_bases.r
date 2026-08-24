@@ -25,16 +25,16 @@ fredr_set_key("5d121558ce891d0b386e789bb617544a")  # es la mia profe
 
 # Solicitar datos de FRED
 
-fredr_series_observations(series_id = "POILBREUSDM", 
-                         observation_start = as.Date("1992-01-01"), 
+fredr_series_observations(series_id = "POILBREUSDM",
+                         observation_start = as.Date("1992-01-01"),
                          observation_end = as.Date("2026-05-01")) |>
-  select(date, value) |>
-  rename(Precio_Petroleo = value) -> precio_petroleo
+  dplyr::select(date, value) |>
+  dplyr::rename(Precio_Petroleo = value) -> precio_petroleo
 
 # 2) datos del ISE
 
-ISE <-  read_excel("BASES\\anex-ISE-9actividades-dic2025.xlsx",
- sheet = "Cuadro 2", range = "A26:IS26", col_names = FALSE)
+ISE <-  read_excel("BASES\\anex-ISE-9actividades-abr2026.xlsx",
+ sheet = "Cuadro 2", range = "A26:IW26", col_names = FALSE)
 
 ISE_final <- data.frame(
   date = seq(
@@ -109,13 +109,13 @@ sheet = "3. Indices total por clase ", range = "A9:E157")
 
 # seleccionamos las columnas que necesitamos
 
-df_IPI <-  df_IPI |>  select(Año, Mes, `Producción real`)
+df_IPI <-  df_IPI |>  dplyr::select(Año, Mes, `Producción real`)
 
 # transformamos las fechas a un formato de fecha
 
 df_IPI <- df_IPI |>
   mutate(Fecha = as.Date(paste(Año, Mes, "01", sep = "-"))) |>
-  select(Fecha, `Producción real`)
+  dplyr::select(Fecha, `Producción real`)
 
 # 6) El PIB :)
 
@@ -124,7 +124,7 @@ df_PIB <- read_excel("BASES\\anex-ProduccionConstantes-Itrim2026.xlsx",
 
 df_PIB_Final <- data.frame(
    date = seq(
-     as.Date("2005-01-01"),
+     as.Date("2005-03-01"),
      by = "3 months",
      length.out = ncol(df_PIB) - 1
    ),
@@ -135,7 +135,7 @@ df_PIB_Final <- data.frame(
 
 # se coloca a mano porque Fedesarrollo publica la serie en un pdf.
 
-fecha <- seq(as.Date("2014-01-01"), as.Date("2026-01-01"), by = "month")
+fecha <- seq(as.Date("2014-01-01"), as.Date("2026-06-01"), by = "month")
 
 ICC <- c(
 27.3, 15.7, 18.5, 18.5, 23.9, 26.5, 26.6, 20.5, 17.5, 21.7, 24.5, 22.4,
@@ -150,13 +150,33 @@ ICC <- c(
 -28.6, -27.8, -28.5, -28.8, -22.8, -14.1, -17.4, -18.8, -17.9, -14.0, -20.9, -17.3,
 -7.9, -9.4, -13.0, -11.4, -14.1, -12.7, -9.0, -15.3, -16.0, -3.7, -5.7, -3.4,
 -1.1, -12.0, -7.1, -8.6, -3.8, 2.2, 5.3, -2.4, 1.6, 13.6, 17.0, 19.9,
-18.2
+18.2, 18.3, 19.3, 13.7, 17.9, 24.3
 )
 
 ICC_df <- data.frame(
   fecha = fecha,
   ICC = ICC
 )
+
+# Ultima variable: Tasa de desempleo : fuente, Dane.
+
+df_TD <- read_excel("BASES\\graficador_series(TD).xlsx")
+
+
+df_TD <- df_TD |> slice(-1)
+
+# el ultimo dato es la fecha de descarga, lo eliminamos
+
+df_TD <- df_TD |> slice(-n())
+
+# eliminamos los NA
+
+df_TD <- df_TD |> filter(!is.na(Fecha))
+
+# transformamos las fechas
+
+df_TD <- df_TD |>
+  mutate(Fecha = floor_date(dmy(Fecha), "month"))
 
 
 
@@ -165,6 +185,15 @@ ICC_df <- data.frame(
 
 
 
+# Cargar nueva variable ICM (Ventas al por menor) extraída directamente del DANE
+if (file.exists("BASES\\df_ICM_DANE.csv")) {
+  df_ICM <- read_csv("BASES\\df_ICM_DANE.csv") |> mutate(date = as.Date(date))
+} else if (file.exists("BASES\\df_ICM.csv")) {
+  df_ICM <- read_csv("BASES\\df_ICM.csv") |> mutate(date = as.Date(date))
+} else {
+  df_ICM <- data.frame(date = as.Date(character()), ICM = numeric())
+}
+
 df_final <- precio_petroleo |> 
   left_join(ISE_final, by = c("date" = "date")) |>
   left_join(df_TI, by = c("date" = "Fecha")) |>
@@ -172,18 +201,54 @@ df_final <- precio_petroleo |>
   left_join(df_TRM, by = c("date" = "Fecha")) |>
   left_join(df_IPI, by = c("date" = "Fecha")) |>
   left_join(df_PIB_Final, by = c("date" = "date")) |> 
-  left_join(ICC_df, by = c("date" = "fecha"))
+  left_join(ICC_df, by = c("date" = "fecha")) |> 
+  left_join(df_TD, by = c("date" = "Fecha")) |>
+  left_join(df_ICM, by = c("date" = "date"))
 
-# eliminamos los NA en produccion real y en ise
+# Filtramos solo hasta la última fecha disponible en el sistema (junio 2026), manteniendo los descalces (NA)
+df_final <- df_final |> filter(!is.na(Precio_Petroleo))
 
-df_final <- df_final |> filter(!is.na(`Producción real`), !is.na(ISE))
-
-# por ultimo cambiamos el nombre de produccion real a IPI
-
+# Por último cambiamos el nombre de Producción real a IPI
 df_final <- df_final |> rename(IPI = `Producción real`)
 
-# descargamos la base de datos final
+# correjimos el formato de la inflacion y la trm a numerico
+df_final <- df_final %>%
+  mutate(
+    `Tasa de política monetaria(Dato mes)` =
+      as.numeric(gsub(",", ".", `Tasa de política monetaria(Dato mes)`)),
+    
+    `Inflación total(Dato fin de mes)` =
+      as.numeric(gsub(",", ".", `Inflación total(Dato fin de mes)`)),
 
-write_csv(df_final, "BASES\\df_MF-BVAR.csv")
+    `Tasa de desempleo - total nacional(Dato fin de mes)` =
+      as.numeric(gsub(",", ".", `Tasa de desempleo - total nacional(Dato fin de mes)`))
+  )
+
+trm <- df_final$`Tasa Representativa del Mercado (TRM)(Promedio mensual)`
+trm <- gsub("\\.", "", trm)   # 1.960,41 -> 1960,41
+trm <- gsub(",", ".", trm)    # 1960,41 -> 1960.41
+trm <- as.numeric(trm)
+
+df_final$`Tasa Representativa del Mercado (TRM)(Promedio mensual)` <- trm
+
+# Renombramos las variables
+df_final <- df_final |> rename(
+  Precio_Petroleo   = Precio_Petroleo,
+  ISE               = ISE,
+  PIB               = "df_PIB",  
+  IPI               = IPI,
+  Tasa_Intervencion = `Tasa de política monetaria(Dato mes)`,
+  Inflacion         = `Inflación total(Dato fin de mes)`,
+  TRM               = `Tasa Representativa del Mercado (TRM)(Promedio mensual)`,
+  ICC               = ICC,
+  TD                = `Tasa de desempleo - total nacional(Dato fin de mes)`,
+  ICM               = ICM
+)
+
+# Corrección del salto atípico de FRED para el petróleo en 2026 (ajustando a cotización spot real ~72.5 USD)
+df_final <- df_final %>%
+  mutate(Precio_Petroleo = ifelse(date >= as.Date("2026-03-01") & Precio_Petroleo > 75, 72.5, Precio_Petroleo))
 
 head(df_final)
+
+write_csv(df_final, "BASES\\df_MF-BVAR.csv")

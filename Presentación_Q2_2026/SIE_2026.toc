@@ -1,0 +1,8 @@
+\babel@toc {spanish}{}\relax 
+\beamer@sectionintoc {1}{Introducción - Problema}{9}{0}{1}
+\beamer@sectionintoc {2}{Marco Teórico y Revisión de Bibliografía}{24}{0}{2}
+\beamer@sectionintoc {3}{Datos y Metodología}{31}{0}{3}
+\beamer@subsectionintoc {3}{1}{Datos}{31}{0}{3}
+\beamer@subsectionintoc {3}{2}{Metodología}{37}{0}{3}
+\beamer@sectionintoc {4}{Estimaciones y Resultados}{70}{0}{4}
+\beamer@sectionintoc {5}{Consideraciones finales}{84}{0}{5}
