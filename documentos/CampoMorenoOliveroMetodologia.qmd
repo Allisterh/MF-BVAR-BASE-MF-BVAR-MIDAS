@@ -2,19 +2,8 @@
 title: "Nowcasting del crecimiento económico en Colombia mediante modelos bayesianos de frecuencia mixta"
 shorttitle: "Nowcasting económico en Colombia"
 author:
-  - name: Juan Diego Moreno Sánchez
-    corresponding: true
-    orcid: 0000-0000-0000-0000 
-    email: juan.moreno31@est.uexternado.edu.co
-    affiliations:
-      - id: u_externado
-        name: "Universidad Externado de Colombia"
-        department: "Facultad de Economía"
-    roles:
-      - writing
-      - formal analysis
-      - conceptualization
   - name: Jacobo Campo Robledo
+    corresponding: True
     orcid: 0000-0000-0000-0000 
     email: jacampo@ucatolica.edu.co
     affiliations:
@@ -22,15 +11,36 @@ author:
         name: "Universidad Católica de Colombia"
         department: "Facultad de Ciencias Económicas y Administrativas"
     roles:
-      - supervision
-      - methodology
+      - writing
+      - conceptualization
+      - formal analysis
+       
+  - name: Juan Diego Moreno Sánchez
+    corresponding: false
+    orcid: 0000-0000-0000-0000 
+    email: juan.moreno31@est.uexternado.edu.co
+    affiliations:
+      - id: u_externado
+        name: "Universidad Externado de Colombia"
+        department: "Facultad de Economía"
+    roles:
+      - Methodology
+      - Writing
+  -  name: Zeneth Olivero Tapia
+     corresponding: false 
+     email: zeneth@gmail.com # depsues lo pongo no me lo se
+     affiliations:
+      - id: u_catolica
+        name: "Universidad Católica de Colombia"
+        department: "Facultad de Ciencias Económicas y Administrativas"
+        # rol despues
 
 author-note:
   disclosures:
     conflict-of-interest: "Los autores declaran que no tienen conflictos de intereses."
 
 abstract: |
-  Aquí debes pegar el resumen de tu investigación. El template se encargará de darle el formato APA 7 automático en la segunda página del documento Word.
+  En este documento voy a sintizar la metodologia :)
 
 keywords: []
 
@@ -45,13 +55,284 @@ bibliography: referencias.bib
 lang: es
 
 # Ajustes de visualización en el docx
-floatsintext: true # Esto hace que las tablas y figuras queden en el texto y no al final
+floatsintext: true 
 numbered-lines: false
 word-count: false
 ---
 
-# Metodología
+## Nota para el profe
 
-Para 
+Voy a seguir la siguiente estructura para la metodologia, esta pensada para ser ordenada y ser coherente con el objetivo de la investigación.
+
+3. Econometric Methodology
+
+   3.1. Mixed-Frequency BVAR in State-Space Form
+
+        3.1.1. State-Space Representation of the MF-BVAR
+
+        3.1.2. Transition Equation and Latent Dynamics
+
+        3.1.3. Temporal Aggregation and the Measurement Equation
+
+   3.2. Prior Distribution and Bayesian Shrinkage
+
+        3.2.1. Conjugate Matrix Normal-Inverse Wishart Prior
+
+        3.2.2. Minnesota Prior Specification and Hyperparameter Tuning
+
+   3.3. Posterior Inference via Gibbs Sampling (Carter-Kohn Smoother)
+
+   3.4. Benchmark Model: The Unrestricted Mixed-Data Sampling (U-MIDAS)
+
+   3.5. Out-of-Sample Evaluation Scheme and Forecast Metrics
+
+# Data
+
+To empirically illustrate the asynchronous data publication problem (the *ragged edge*), we evaluate a real-time data vintage with a cutoff date of July 1, 2026. The objective is to nowcast the second quarter (Q2-2026) Gross Domestic Product (GDP), which the National Administrative Department of Statistics (DANE) officially releases on August 15, 2026. Table X details the exact availability of each variable in the information set at this specific cutoff, reflecting the official publication lags of the respective sources.
+
+| Variable | Frequency | Source | Last Available Observation | Status at Cutoff (July 1, 2026) |
+|:---|:---:|:---|:---:|:---|
+| Gross Domestic Product (GDP) | Quarterly | DANE | Q1-2026 | Missing Q2-2026 |
+| Economic Tracking Indicator (ISE) | Monthly | DANE | April 2026 | Missing May & June |
+| Industrial Production Index (IPI) | Monthly | DANE | April 2026 | Missing May & June |
+| Retail Trade Index (ICM) | Monthly | DANE | April 2026 | Missing May & June |
+| Unemployment Rate (TD) | Monthly | DANE | May 2026 | Missing June |
+| Inflation (CPI) | Monthly | DANE | May 2026 | Missing June |
+| Consumer Confidence Index (ICC) | Monthly | Fedesarrollo | May 2026 | Missing June |
+| Exchange Rate (TRM) | Monthly | BanRep / SFC | May 2026 | Missing June |
+| Monetary Policy Rate | Monthly | BanRep | May 2026 | Missing June |
+| Brent Oil Price | Monthly | World Bank / FRED | May 2026 | Missing June |
 
 
+# Methodology
+
+Real-time macroeconomic forecasting and inference face two primary data constraints: the frequency mismatch between monthly high-frequency indicators and quarterly national accounts, and the asynchronous release calendars across statistical agencies (the ragged-edge problem). Standard workarounds typically aggregate monthly indicators to quarterly frequency—discarding valuable intra-quarterly dynamics—or interpolate quarterly series using monthly proxies, which distorts the true behavior of the target variable. Instead, we implement a Mixed-Frequency Bayesian Vector Autoregressive (MF-BVAR) framework cast in state-space form [@schorfheide2015real; @ankargren2020mfbvar]. Under this setup, quarterly Gross Domestic Product (GDP) is treated as a partially observed latent monthly process linked to the system through a deterministic temporal aggregation identity.
+
+To discipline parameter estimation in a medium-scale system subject to finite-sample overparameterization, we employ a conjugate Matrix Normal-Inverse Wishart prior with Minnesota-type shrinkage and simulate the joint posterior distribution via Gibbs sampling with the Carter-Kohn filter-smoother [@carter1994gibbs; @banbura2010large]. Furthermore, to evaluate predictive gains against established single-equation methods, we specify an Unrestricted Mixed-Data Sampling (U-MIDAS) model as a competing benchmark [@foroni2015unrestricted; @kuzin2011midas].
+
+
+
+## State-Space Representation of the MF-BVAR
+
+Let $x_t$ denote an $n \times 1$ stochastic vector evolving at a monthly frequency $t$, partitioned into observable high-frequency variables and unobserved latent processes:
+
+$$
+x_t = \begin{bmatrix} x_{m,t} \\ x_{q,t}^* \end{bmatrix}
+$$
+
+where:
+
+* $x_{m,t}$ is an $n_m \times 1$ subvector ($n_m = 9$) of macroeconomic indicators observed on a monthly basis.
+
+* $x_{q,t}^* = \log(\text{GDP}_{M,t})$ is an $n_q \times 1$ ($n_q = 1$) scalar representing the unobserved logarithm of monthly real Gross Domestic Product.
+
+Thus, the total dimension of the monthly system is $n = n_m + n_q = 10$.
+
+
+### Transition Equation and Latent Dynamics
+
+Following the framework established by @schorfheide2015real, the MF-BVAR models the joint dynamics of both observed and unobserved variables at a monthly frequency. The high-frequency state vector, $x_t$, evolves according to a vector autoregressive process in levels of order $p$, yielding the transition equation:
+$$
+x_t = c + \Phi_1 x_{t-1} + \Phi_2 x_{t-2} + \dots + \Phi_p x_{t-p} + u_t
+$$
+
+where $c$ is an $n \times 1$ vector of constants, $\Phi_1, \dots, \Phi_p$ are $n \times n$ autoregressive coefficient matrices, and $u_t$ represents the reduced-form shocks, distributed as $u_t \sim \mathcal{N}(0, \Sigma)$.
+
+In this representation, monthly GDP operates as an unobserved latent variable. Its trajectory is dictated by the autoregressive parameters $\Phi_i$ and the covariance matrix $\Sigma$, which capture the historical co-movements between the latent output and the fully observed monthly indicators (such as the ISE, industrial production, and financial variables). 
+
+To resolve the missing data problem inherent to the unobserved monthly GDP, the system relies on the forward-filtering backward-sampling (FFBS) algorithm [@carter1994gibbs] inside the Gibbs sampler loop. The smoother reconstructs the latent monthly GDP sequence by conditioning on the observed high-frequency predictors, anchoring the unobserved signal to the system's empirical covariance structure while preserving the underlying dynamics defined by the VAR($p$) process. In our empirical implementation, the lag length is fixed a priori at $p=6$ to capture half-year macroeconomic dynamics, ensuring sufficient lag depth for the monthly frequency.
+
+### Temporal Aggregation and the Measurement Equation
+
+To complete the state-space representation, the unobserved monthly states must be linked to the actual data observed by the econometrician. This link is formalized through the measurement equation. For the high-frequency variables $x_{m,t}$, the mapping is straightforward: since they are fully observed on a monthly basis, they map directly to their latent states via an identity matrix.
+
+However, Gross Domestic Product is only observed quarterly. Because GDP is a flow variable modeled in logarithms, the quarterly observation is approximated as the arithmetic average of its corresponding monthly latent realizations within the quarter [@mariano2003new]. Mathematically, if $t$ denotes the third and final month of a given quarter, the observed quarterly log-GDP, $y_{q,t}$, is linked to the latent monthly process $x_{q,t}^*$ via the following intra-quarterly aggregation restriction:
+
+$$
+y_{q,t} = \frac{1}{3} \left( x_{q,t}^* + x_{q,t-1}^* + x_{q,t-2}^* \right)
+$$
+
+For non-end-of-quarter months, the quarterly observation is treated as missing data, and this aggregation constraint does not bind directly, allowing the smoother to interpolate the latent path based purely on the transition equation. 
+
+To express the quarterly aggregation constraint as a static measurement equation, we redefine the state vector as the stacked vector $\tilde{x}_t = (x_t', x_{t-1}', x_{t-2}')'$. The complete measurement equation is then:
+
+$$
+Y_t = \Lambda \tilde{x}_t + v_t
+$$
+
+where $Y_t$ is the vector of all empirical observations at month $t$, $\Lambda$ directly selects the monthly variables from the contemporary block of $\tilde{x}_t$ and applies the $1/3$ weights to the three realizations of $x_{q,\cdot}^*$ distributed across the three blocks of $\tilde{x}_t$, and $v_t$ is the measurement error vector.
+
+## Prior Distribution and Bayesian Shrinkage
+
+A mixed-frequency VAR with $n=10$ variables and $p=6$ lags yields $n(np+1) = 610$ coefficients in the transition equation alone, alongside 55 unique parameters in the covariance matrix $\Sigma$. In a standard frequentist framework, estimating this dimensional space with finite macroeconomic time series inevitably leads to severe overparameterization (overfitting). This inflates sample variance and severely degrades out-of-sample forecasting performance. To solve this degrees-of-freedom problem, the Bayesian framework introduces prior information that shrinks the parameter space toward a parsimonious baseline specification, effectively trading a small theoretical bias for a massive reduction in estimation variance [@banbura2010large].
+
+### Conjugate Matrix Normal-Inverse Wishart Prior
+
+To implement this shrinkage while maintaining computational tractability, we specify a conjugate Matrix Normal-Inverse Wishart (MNIW) prior. This analytical choice guarantees that the posterior conditional distributions remain in the same probability family as the prior, allowing for direct sampling and significantly accelerating the Markov Chain Monte Carlo (MCMC) algorithm. 
+
+The joint prior distribution is structured hierarchically. First, the residual covariance matrix $\Sigma$ follows an Inverse-Wishart distribution:
+
+$$
+\Sigma \sim \mathcal{IW}(\underline{S}, \underline{\nu})
+$$
+
+where $\underline{S}$ is the prior scale matrix and $\underline{\nu}$ denotes the prior degrees of freedom. 
+
+Conditioned on the draw of $\Sigma$, the block matrix of autoregressive coefficients $\Phi = [c, \Phi_1, \dots, \Phi_p]$ follows a Matrix Normal distribution:
+
+$$
+\Phi | \Sigma \sim \mathcal{MN}(\underline{\Phi}, \Sigma \otimes \underline{V})
+$$
+
+where:
+* $\underline{\Phi}$ is the prior mean matrix, which encodes the baseline dynamic behavior assumed for the variables (traditionally a Random Walk or an independent AR(1) process).
+* $\underline{V}$ is a diagonal matrix governing the prior variance of the coefficients, explicitly determining the degree of shrinkage applied to each equation and lag. 
+* $\otimes$ denotes the Kronecker product, structurally scaling the variance of the coefficients proportionally to the residual variance of their respective equations.
+
+The specific numerical population of $\underline{\Phi}$ and $\underline{V}$ relies on the standard Minnesota prior parameterization, detailed below.
+
+
+### Minnesota Prior Specification and Hyperparameter Tuning
+
+To populate the prior mean ($\underline{\Phi}$) and prior variance ($\underline{V}$) matrices, we adopt the well-established Minnesota prior framework, originally developed by @litterman1986. The foundational premise of the Minnesota prior is that the dynamic behavior of most macroeconomic time series is well-approximated by independent random walks (for non-stationary series) or white noise/stationary autoregressive processes (for stationary series). 
+
+Consequently, the prior mean matrix $\underline{\Phi}$ is structured such that all cross-variable lag coefficients are centered exactly at zero. For the first own-lag coefficients, the prior mean is conditioned strictly on the transformation of the underlying data, following the mixed-frequency parameterization established by @schorfheide2015real:
+
+* **Random Walk Prior (Prior mean = 1):** Assigned to variables modeled in log-levels, which exhibit strong non-stationary persistence. In our system, this applies to the Oil Price (Brent), the Economic Tracking Indicator (ISE), Industrial Production (IPI), the Exchange Rate (TRM), Retail Trade (ICM), and the target latent GDP.
+
+* **White Noise Prior (Prior mean = 0):** Assigned to variables modeled in raw rates, percentages, or mean-reverting indices, which are treated as stationary. This applies to the Monetary Policy Rate, Consumer Confidence (ICC), Inflation (CPI), and the Unemployment Rate.
+
+This binary baseline severely restricts the parameter space, mitigating the risk of detecting spurious correlations across distant lags while respecting the time-series properties of the dataset.
+
+The prior variance matrix, $\underline{V}$, governs the tightness of these beliefs. Following @banbura2010large, the variance is scaled by a set of hyperparameters. The core mechanism is driven by the overall shrinkage hyperparameter, $\lambda_1 > 0$, which dictates the standard deviation of the prior. A key feature of this parameterization is its harmonic decay for distant lags. Specifically, the prior variance for the coefficient on lag $l$ of variable $j$ in equation $i$, denoted $\underline{V}_{ij, l}$, is constructed as:
+
+$$
+\underline{V}_{ij, l} = 
+\begin{cases} 
+\frac{\lambda_1^2}{l^2} & \text{if } i = j \text{ (own lags)} \\
+\frac{\lambda_1^2}{l^2} \frac{\sigma_i^2}{\sigma_j^2} & \text{if } i \neq j \text{ (cross lags)}
+\end{cases}
+$$
+
+where $\lambda_1$ dictates the overall tightness, $l^2$ strictly penalizes distant lags, and the ratio $\sigma_i^2 / \sigma_j^2$ acts as a scaling factor to account for the different magnitudes and units of the macroeconomic series. Note that we purposely omit a separate cross-variable tightness hyperparameter (traditionally $\lambda_2$) to maintain computational parsimony; under the strict conjugate MNIW structure ($\Sigma \otimes \underline{V}$), cross-lag shrinkage is governed symmetrically by the residual covariance matrix. Note that we purposely omit a separate cross-variable tightness hyperparameter (traditionally $\lambda_2$) to maintain computational parsimony; under the strict conjugate MNIW structure ($\Sigma \otimes \underline{V}$), cross-lag shrinkage is governed symmetrically by the residual covariance matrix. 
+
+If $\lambda_1 \to 0$, the posterior shrinks entirely to the prior mean, collapsing the VAR into a set of independent univariate processes. Conversely, if $\lambda_1 \to \infty$, the prior becomes uninformative, and the posterior estimates converge to the overparameterized frequentist OLS estimates. 
+
+For our empirical implementation, the overall shrinkage hyperparameter was calibrated to $\lambda_1 = 0.04$. Following @giannone2015prior, this value was selected through a grid-search procedure designed to maximize the marginal data density of the model, jointly balancing model fit and complexity.
+
+
+## Posterior Inference via Gibbs Sampling (Carter-Kohn Smoother)
+
+The joint posterior distribution of the unobserved monthly states ($X$) and the VAR parameters ($\Psi = \{\Phi, \Sigma\}$) is analytically intractable. To overcome this, following the methodology of @schorfheide2015real and @ankargren2020mfbvar, we employ a Markov Chain Monte Carlo (MCMC) algorithm—specifically, a Gibbs sampler with data augmentation. This approach circumvents the intractability by breaking the high-dimensional estimation problem into two sequential, conditional sampling steps at each iteration $j$:
+
+**Step 1: Drawing the Latent States (Forward-Filtering Backward-Sampling)**
+In the first step, we condition on the actual observations ($Y$) and the previous draw of the VAR parameters ($\Psi^{(j-1)}$) to sample the full trajectory of the unobserved high-frequency states $X^{(j)}$. The conditional distribution is given by:
+
+$$
+X^{(j)} \sim p(X | Y, \Psi^{(j-1)})
+$$
+
+Because the transition and measurement equations are linear and Gaussian, we sample from this distribution using the multi-move forward-filtering backward-sampling (FFBS) algorithm developed by @carter1994gibbs. The algorithm runs the Kalman filter forward to compute the mean and variance of the state vector, and then proceeds backward in time to draw a complete sequence for the latent monthly GDP that strictly adheres to the quarterly aggregation constraint.
+
+**Step 2: Drawing the VAR Parameters**
+In the second step, the algorithm conditions on the data and the newly drawn state trajectory from Step 1. By treating the sampled monthly GDP ($X^{(j)}$) as a fully observed variable, the dataset becomes conditionally complete. The parameter block is drawn from:
+
+$$
+\Psi^{(j)} \sim p(\Psi | Y, X^{(j)})
+$$
+
+With a complete data matrix, the conditional posterior distributions revert to the standard conjugate framework. We first draw the covariance matrix $\Sigma^{(j)}$ from its posterior Inverse-Wishart distribution, and subsequently draw the autoregressive coefficients $\Phi^{(j)}$ from their posterior Matrix Normal distribution:
+
+$$
+\Sigma^{(j)} | Y, X^{(j)} \sim \mathcal{IW}(\bar{S}, \bar{\nu})
+$$
+$$
+\Phi^{(j)} | \Sigma^{(j)}, Y, X^{(j)} \sim \mathcal{MN}(\bar{\Phi}, \Sigma^{(j)} \otimes \bar{V})
+$$
+
+where $\bar{S}$, $\bar{\nu}$, $\bar{\Phi}$, and $\bar{V}$ denote the posterior parameters updated sequentially from the Minnesota prior constraints and the augmented data matrix.
+
+By iteratively alternating between Step 1 and Step 2, the Markov chain converges to the true joint posterior distribution. For our empirical estimation, the Gibbs sampler was executed for 20,000 iterations. To eliminate the influence of arbitrary starting values and ensure convergence to the stationary distribution, the first 10,000 iterations were discarded as a burn-in period. Posterior inference, including the median nowcast and the 95% credible intervals, is computed strictly using the 10,000 retained draws.
+
+## 3.4. The Benchmark Model: Unrestricted AR-MIDAS (U-MIDAS)
+
+To rigorously evaluate the forecasting performance of the MF-BVAR, we employ an Unrestricted Mixed-Data Sampling (U-MIDAS) model as our primary benchmark. Originally introduced by @ghysels2004midas, traditional MIDAS models rely on parameterized polynomial weighting functions (e.g., Almon or Beta) to parsimoniously map high-frequency predictors to low-frequency targets. However, as demonstrated by @foroni2015unrestricted, when the frequency mismatch is small—such as the monthly-to-quarterly aggregation in our dataset—estimating the high-frequency lags freely via ordinary least squares (Unrestricted MIDAS) is highly effective and avoids non-linear optimization pitfalls.
+
+To ensure a rigorous and comparable evaluation, the U-MIDAS model is constrained to the same real-time information set (data vintage) as the MF-BVAR. However, to preserve degrees of freedom in the frequentist regression, we restrict the predictor set to the two most critical drivers of aggregate demand and production: the Economic Tracking Indicator (ISE) and the Retail Trade Index (ICM). The ISE serves as the most direct monthly proxy for real economic activity, while the ICM captures the trajectory of domestic household consumption, which constitutes the largest component of Colombian GDP. 
+
+Our specific implementation is an Autoregressive U-MIDAS model defined in stationary growth rates (log-differences). The quarterly GDP growth, $\Delta y_{t}^Q$, is regressed on its own first lag and the three corresponding monthly realizations of our predictors within the quarter:
+
+$$
+\Delta y_t^Q = \alpha + \rho \Delta y_{t-1}^Q + \sum_{m=1}^3 \beta_{1,m} \Delta x_{1, t, m}^{M} + \sum_{m=1}^3 \beta_{2,m} \Delta x_{2, t, m}^{M} + \varepsilon_t
+$$
+
+where $\Delta x_{i, t, m}^{M}$ represents the growth rate of the monthly predictor $i$ in month $m$ of quarter $t$. 
+
+A critical challenge in real-time nowcasting is the asynchronous publication of the data (the ragged-edge). To resolve this identically for the U-MIDAS, missing monthly observations at the end of the sample are imputed dynamically. Rather than relying on naive assumptions (such as Last Observation Carried Forward), the missing high-frequency months are projected using univariate Autoregressive Moving Average (ARMA) models prior to the OLS quarterly aggregation. This guarantees that both the MF-BVAR and the U-MIDAS confront the exact same structural ragged-edge challenge under robust imputation methodologies.
+
+## 3.5. Out-of-Sample Evaluation Scheme and Forecast Metrics
+
+To formally compare the nowcasting accuracy of the MF-BVAR against the U-MIDAS benchmark, we design a pseudo-real-time out-of-sample forecasting exercise. The evaluation is conducted over an expanding window covering the last $P=8$ quarters of the sample. In each iteration, the dataset is truncated, and both models are re-estimated using only the information available up to that specific quarter. Crucially, the ragged-edge data structure (the asynchronous publication delays of the monthly variables) is recreated dynamically at each step, ensuring the evaluation reflects a true pseudo-real-time environment. 
+
+The performance of the point forecasts is evaluated using two standard loss functions: the Root Mean Squared Error (RMSE) and the Mean Absolute Error (MAE). Let $\hat{y}_{t+h|t}^{(m)}$ denote the $h$-step-ahead forecast of quarterly GDP produced by model $m$ (where $m \in \{\text{MF-BVAR}, \text{U-MIDAS}\}$), conditional on the information set available at time $t$. The forecast error is defined as $e_{t+h}^{(m)} = y_{t+h} - \hat{y}_{t+h|t}^{(m)}$. The evaluation metrics over the out-of-sample period are computed as follows:
+
+$$
+\text{RMSE}^{(m)} = \sqrt{\frac{1}{P} \sum_{t=1}^P \left( e_{t+h}^{(m)} \right)^2}
+$$
+
+$$
+\text{MAE}^{(m)} = \frac{1}{P} \sum_{t=1}^P \left| e_{t+h}^{(m)} \right|
+$$
+
+While the RMSE penalizes larger forecasting errors more heavily due to the quadratic loss function, the MAE provides a linear penalty and is more robust to outliers. To establish whether the differences in predictive accuracy between the models are statistically significant, we employ the @diebold1995comparing (DM) test. The null hypothesis of the DM test posits equal predictive accuracy between the two competing models, $E\left[L\left(e_{t+h}^{(\text{MF-BVAR})}\right)\right] = E\left[L\left(e_{t+h}^{(\text{U-MIDAS})}\right)\right]$, where $L(\cdot)$ is the specified loss function (squared or absolute). The test statistic is constructed using a Heteroskedasticity and Autocorrelation Consistent (HAC) estimator for the variance of the loss differential.
+
+Finally, to ensure robust posterior inference given the high dimensionality of the MF-BVAR (610 parameters), convergence of the Markov chain is continuously monitored, and the U-MIDAS imputation ARMA lag orders are selected dynamically at each evaluation step via standard information criteria (AIC).
+
+# Results and Figures: Nowcasting Colombian GDP
+
+## 1. Real-Time Forecast (Nowcast Q2-2026)
+
+| Model | Estimated GDP (Billions COP) | Credible Interval (95%) | Quarter-on-Quarter Growth (QoQ) | Year-on-Year Growth (YoY) |
+| :--- | :---: | :---: | :---: | :---: |
+| **MF-BVAR** | **262,066.3** | [256,108.6 - 268,248.5] | **+1.27%** | **+3.43%** |
+| **AR-MIDAS** | **261,220.0** | - | **+0.94%** | **+3.10%** |
+
+---
+
+## 3. Forecast Error Variance Decomposition (12-Month FEVD - GDP)
+
+| Variable | Transmission Channel | Variance Contribution (%) | Cumulative Contribution (%) |
+| :--- | :--- | :---: | :---: |
+| **Economic Tracking Indicator (ISE)** | Aggregate economic activity | **23.06%** | 23.06% |
+| **Monetary Policy Rate** | Monetary policy / Financial conditions | **16.83%** | 39.89% |
+| **Consumer Confidence Index (ICC)** | Expectations and domestic demand | **14.45%** | 54.34% |
+| **Unemployment Rate (TD)** | Labor market | **12.54%** | 66.88% |
+| **Brent Oil Price** | External shock / Terms of trade | **11.04%** | 77.92% |
+| **Industrial Production Index (IPI)** | Manufacturing sector | **7.82%** | 85.74% |
+| **Exchange Rate (TRM)** | External sector and FX | **5.16%** | 90.90% |
+| **Inflation (CPI)** | Consumer prices | **4.12%** | 95.02% |
+| **Retail Trade Index (ICM)** | Retail commercial demand | **3.18%** | 98.20% |
+| **Own Inertia / GDP Shock** | Latent autoregressive dynamics | **1.80%** | 100.00% |
+
+---
+
+## 4. Out-of-Sample Predictive Evaluation (Expanding Window: 8 Quarters)
+
+| Model | $MAE$ | $MAPE$ (%) | $RMSFE$ | $RMSFE$ Ratio | Error Reduction |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **MF-BVAR** | **1,924.6** | **0.76%** | **2,604.1** | **0.433** | **-56.7%** |
+| **AR-MIDAS** | 5,533.2 | 2.19% | 6,020.6 | 1.000 | Baseline |
+
+---
+
+## 5. Official Figures
+
+### Figure 1: Unobserved Monthly GDP vs Observed Quarterly GDP (2014-2026)
+
+![Latent Monthly GDP vs Observed Quarterly GDP](../grafica_pib_mensual_latente_paper.png)
+
+---
+
+### Figure 2: Nowcast Comparison for Q2-2026 (MF-BVAR vs. AR-MIDAS)
+
+![Nowcast Q2-2026 MF-BVAR vs AR-MIDAS](../grafica_nowcast_comparativo_q2_2026.png)

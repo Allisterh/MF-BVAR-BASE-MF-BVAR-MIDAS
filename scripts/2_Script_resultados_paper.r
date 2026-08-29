@@ -66,6 +66,7 @@ prior_bvar <- set_prior(
   aggregation = "average"
 )
 
+set.seed(42)
 modelo_bvar <- estimate_mfbvar(prior_bvar, prior = "minn")
 
 # Extracción del PIB Mensual Latente
@@ -311,3 +312,5 @@ ggsave("grafica_nowcast_comparativo_q2_2026.png", plot = g2,
        width = 10, height = 5.5, dpi = 300, bg = "white")
 
 print("=== GRÁFICAS GENERADAS CON ÉXITO ===")
+
+# :)
